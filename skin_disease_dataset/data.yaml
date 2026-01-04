@@ -1,0 +1,17 @@
+# Path to dataset
+path: C:/Users/HARSH DIXIT/Downloads/skin_disease_dataset  # Change to your path
+
+# Train and validation paths (relative to 'path')
+train: train/images
+val: val/images
+
+# Number of classes
+nc: 5
+
+# Class names
+names:
+  0: acne
+  1: eczema
+  2: melanoma
+  3: psoriasis
+  4: rosacea
