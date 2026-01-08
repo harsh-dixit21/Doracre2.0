@@ -1,103 +1,46 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from models.user import User
+from firebase_admin import auth
+import traceback
 
 auth_bp = Blueprint('auth', __name__)
 
-@auth_bp.route('/signup', methods=['POST'])
-def signup():
-    """Register a new user"""
+def verify_token(token):
+    """Verify Firebase token"""
     try:
-        data = request.get_json()
-        
-        # Validate input
-        email = data.get('email')
-        password = data.get('password')
-        name = data.get('name')
-        
-        if not email or not password:
-            return jsonify({'error': 'Email and password are required'}), 400
-        
-        if len(password) < 6:
-            return jsonify({'error': 'Password must be at least 6 characters'}), 400
-        
-        # Create user
-        user_id, error = User.create_user(email, password, name)
-        
-        if error:
-            return jsonify({'error': error}), 400
-        
-        # Create access token
-        access_token = create_access_token(identity=user_id)
-        
-        return jsonify({
-            'message': 'User created successfully',
-            'access_token': access_token,
-            'user': {
-                'id': user_id,
-                'email': email,
-                'name': name
-            }
-        }), 201
-        
+        decoded_token = auth.verify_id_token(token)
+        return decoded_token
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@auth_bp.route('/login', methods=['POST'])
-def login():
-    """Login user"""
-    try:
-        data = request.get_json()
-        
-        email = data.get('email')
-        password = data.get('password')
-        
-        if not email or not password:
-            return jsonify({'error': 'Email and password are required'}), 400
-        
-        # Find user
-        user = User.find_by_email(email)
-        
-        if not user or not user.verify_password(password):
-            return jsonify({'error': 'Invalid email or password'}), 401
-        
-        # Create access token
-        access_token = create_access_token(identity=user.id)
-        
-        return jsonify({
-            'message': 'Login successful',
-            'access_token': access_token,
-            'user': user.to_dict()
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Token verification failed: {e}")
+        return None
 
 @auth_bp.route('/profile', methods=['GET'])
-@jwt_required()
 def get_profile():
-    """Get current user profile"""
+    """Get user profile"""
     try:
-        current_user_id = get_jwt_identity()
-        user = User.find_by_id(current_user_id)
+        # Get token from Authorization header
+        auth_header = request.headers.get('Authorization')
         
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
+        if not auth_header:
+            return jsonify({'error': 'No authorization token provided'}), 401
         
-        return jsonify({'user': user.to_dict()}), 200
+        # Extract token (format: "Bearer <token>")
+        token = auth_header.split('Bearer ')[-1] if 'Bearer' in auth_header else auth_header
+        
+        # Verify token
+        decoded_token = verify_token(token)
+        
+        if not decoded_token:
+            return jsonify({'error': 'Invalid token'}), 401
+        
+        # Return user data
+        user_data = {
+            'uid': decoded_token['uid'],
+            'email': decoded_token.get('email', ''),
+            'name': decoded_token.get('name', decoded_token.get('email', '').split('@')[0])
+        }
+        
+        return jsonify(user_data), 200
         
     except Exception as e:
+        print(f"Profile error: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
-
-@auth_bp.route('/verify', methods=['GET'])
-@jwt_required()
-def verify_token():
-    """Verify JWT token"""
-    try:
-        current_user_id = get_jwt_identity()
-        return jsonify({
-            'valid': True,
-            'user_id': current_user_id
-        }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 401

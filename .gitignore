@@ -1,32 +1,130 @@
-# Node modules
-node_modules/
-package-lock.json
+# ============================================
+# DORACARE 2.0 - COMPLETE .GITIGNORE
+# ============================================
 
-# Python
-backend/venv/
-backend/__pycache__/
-backend/*.pyc
-backend/*.pyo
-backend/*.db
-
-# Uploads and generated files
-backend/uploads/
-backend/static/
-backend/ml_model/*.pt
-
-# Environment variables
+# ========== FIREBASE SECRETS ==========
+# CRITICAL: Never commit Firebase credentials!
+backend/config/serviceAccountKey.json
+serviceAccountKey.json
+*firebase-adminsdk*.json
 .env
 .env.local
+.env.production
 
-# IDE
-.vscode/
-.idea/
+# ========== PYTHON / BACKEND ==========
+# Virtual environment
+backend/venv/
+venv/
+env/
+ENV/
 
-# OS
-.DS_Store
-Thumbs.db
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/**/__pycache__/
+*.pyc
+*.pyo
 
-# Build files
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads folder (user uploaded images)
+backend/uploads/
+backend/static/uploaded_images/
+
+# ML Model files (too large for GitHub)
+backend/ml_model/*.pt
+backend/ml_model/*.pth
+backend/runs/
+runs/
+
+# ========== NODE / FRONTEND ==========
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production build
 dist/
 build/
+.next/
+out/
+
+# Cache
+.cache/
+.parcel-cache/
+.vite/
+
+# Logs
+logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ========== IDEs / EDITORS ==========
+# VS Code
+.vscode/
+*.code-workspace
+
+# JetBrains (PyCharm, WebStorm)
+.idea/
+*.iml
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ========== OPERATING SYSTEM ==========
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+Desktop.ini
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ========== TESTING / COVERAGE ==========
+coverage/
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ========== MISC ==========
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Package files
+*.zip
+*.tar.gz
+*.rar
+
+# Except required files
+!package.json
+!package-lock.json
+!requirements.txt

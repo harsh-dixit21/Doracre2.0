@@ -1,63 +1,68 @@
-from flask import Flask, jsonify
+from flask import Flask
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
-from flask_bcrypt import Bcrypt
-from datetime import timedelta
+import firebase_admin
+from firebase_admin import credentials
 import os
 
+# Initialize Flask
 app = Flask(__name__)
 
-# Configuration
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-key-change-in-production')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-
-# Initialize extensions
+# Configure CORS properly
 CORS(app, resources={
-    r"/*": {
-        "origins": ["http://localhost:5173", "http://localhost:3000"],
-        "methods": ["GET", "POST", "PUT", "DELETE"],
-        "allow_headers": ["Content-Type", "Authorization"]
+    r"/api/*": {
+        "origins": ["http://localhost:5173", "http://127.0.0.1:5173"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
     }
 })
-jwt = JWTManager(app)
-bcrypt = Bcrypt(app)
 
-# Import and register blueprints
+# Initialize Firebase Admin SDK
+def initialize_firebase():
+    try:
+        # Path to service account key
+        cred_path = os.path.join(os.path.dirname(__file__), 'config', 'serviceAccountKey.json')
+        
+        if not os.path.exists(cred_path):
+            print("⚠️ WARNING: serviceAccountKey.json not found!")
+            print(f"⚠️ Expected at: {cred_path}")
+            return False
+        
+        cred = credentials.Certificate(cred_path)
+        firebase_admin.initialize_app(cred)
+        print("✅ Firebase Admin SDK initialized successfully")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Firebase Admin initialization failed: {e}")
+        return False
+
+# Initialize Firebase
+firebase_initialized = initialize_firebase()
+
+# Import routes
 from routes.auth import auth_bp
-from routes.prediction import prediction_bp
+from routes.prediction import predict_bp
 
+# Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
-app.register_blueprint(prediction_bp, url_prefix='/api/predict')
-
-# Initialize database
-from utils.database import init_db
-init_db()
+app.register_blueprint(predict_bp, url_prefix='/api/predict')
 
 @app.route('/')
-def home():
-    return jsonify({
-        'message': 'Doracare 2.0 API',
-        'version': '1.0.0',
-        'status': 'running'
-    })
+def index():
+    return {
+        'message': 'Doracare API running ✅',
+        'firebase': 'connected' if firebase_initialized else 'disconnected'
+    }
 
-@app.route('/api/health')
-def health_check():
-    return jsonify({'status': 'healthy', 'service': 'Doracare API'})
-
-@app.errorhandler(413)
-def too_large(e):
-    return jsonify({'error': 'File is too large. Maximum size is 16MB'}), 413
-
-@app.errorhandler(404)
-def not_found(e):
-    return jsonify({'error': 'Endpoint not found'}), 404
-
-@app.errorhandler(500)
-def internal_error(e):
-    return jsonify({'error': 'Internal server error'}), 500
+@app.route('/health')
+def health():
+    return {
+        'status': 'healthy',
+        'firebase': firebase_initialized
+    }, 200
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    print("🚀 Starting Doracare backend...")
+    print(f"🔥 Firebase Status: {'✅ Connected' if firebase_initialized else '❌ Not Connected'}")
+    app.run(debug=True, port=5000, host='127.0.0.1')
